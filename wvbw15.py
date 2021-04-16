@@ -39,6 +39,10 @@ def simple_sat_solve(clause_set):
     else:
         print('this CNF is satisfiable')
 
+def branching_sat_solve(clause_set,partial_assignment):
+    print(clause_set,partial_assignment)
+
+    
 #reading DIMACS file & creating clause set  res = [i for i in clause_set if i not in removal]  
 txtfile = open("4queens.txt", "r")
 clauselist=[]
