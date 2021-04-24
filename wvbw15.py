@@ -1,7 +1,6 @@
 import itertools
 import operator
 def simple_sat_solve(clause_set):
-    
     maxlist=[max(element) for element in clause_set]
     maxvalue=max(maxlist) #finding largest/smallest number (truth_assignments[i[x]-1]) y[i[x]-1]
     n = maxvalue
@@ -39,12 +38,34 @@ def simple_sat_solve(clause_set):
     else:
         print('this CNF is satisfiable')
 
-def branching_sat_solve(clause_set,partial_assignment):
-    print(clause_set,partial_assignment)
+def unit_propagate(literal,clause_set):    
+    for lit in literal:
+        removal=[]
+        print(lit)
+        for i in clause_set:
+            if lit in i:
+                removal.append(i) 
+            if (-1*lit) in i:
+                try:
+                    while True:
+                        i.remove(-1*lit)
+                except ValueError:
+                    pass
+        clause_set= [x for x in clause_set if x not in removal]
+    if len(clause_set)==0:
+        return 'empty'
+    else:
+        return clause_set
 
-    
+def pure_literal_elimate(clause_set):
+    x=1
+    for clauses in clause_set:
+        if (-1*x) in clauses:
+            print('not pure')
+        else:
+            print('pure')
 #reading DIMACS file & creating clause set  res = [i for i in clause_set if i not in removal]  
-txtfile = open("4queens.txt", "r")
+txtfile = open("LNP-6.txt", "r")
 clauselist=[]
 for x in txtfile:
     if (x[0]=="p" or x[0]=="c"):
@@ -55,6 +76,4 @@ for x in txtfile:
             clause.remove(0)
             clauselist.append(clause)
 
-#print(clauselist)  
-simple_sat_solve(clauselist)     
-
+pure_literal_elimate(clauselist)
