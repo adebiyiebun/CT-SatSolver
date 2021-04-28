@@ -1,5 +1,8 @@
 import itertools
+import sys
 import operator
+a_true = set()
+a_false = set()
 def simple_sat_solve(clause_set):
     maxlist=[max(element) for element in clause_set]
     maxvalue=max(maxlist) #finding largest/smallest number (truth_assignments[i[x]-1]) y[i[x]-1]
@@ -38,32 +41,65 @@ def simple_sat_solve(clause_set):
     else:
         print('this CNF is satisfiable')
 
-def unit_propagate(literal,clause_set):    
-    for lit in literal:
-        removal=[]
-        print(lit)
-        for i in clause_set:
-            if lit in i:
-                removal.append(i) 
-            if (-1*lit) in i:
-                try:
-                    while True:
-                        i.remove(-1*lit)
-                except ValueError:
-                    pass
-        clause_set= [x for x in clause_set if x not in removal]
+def unit_propagate(clause_set): 
+    while any([len(clause) == 1 for clause in clause_set]):
+        units=[]  
+        units =[i for innerlist in clause_set for i in innerlist if len(innerlist)==1] 
+    
+        if len(units):
+            for unit in units:
+                print(unit)
+                removal =[]
+                for i in clause_set:
+                    if unit in i:
+                        removal.append(i) 
+                    if (-1*unit) in i:
+                
+                        try:
+                            while True:
+                                i.remove(-1*unit)
+                        except ValueError:
+                            pass
+                clause_set= [x for x in clause_set if x not in removal]
+                units.remove(unit)   
+        else:
+            return clause_set
+       
     if len(clause_set)==0:
-        return 'empty'
+        return True
     else:
         return clause_set
 
 def pure_literal_elimate(clause_set):
-    x=1
-    for clauses in clause_set:
-        if (-1*x) in clauses:
-            print('not pure')
+    maxlist=[max(element) for element in clause_set]
+    maxvalue=max(maxlist) #finding largest/smallest number (truth_assignments[i[x]-1]) y[i[x]-1]
+    for literal in range (1,maxvalue+1): 
+        instances =[]
+        for clause in clause_set:
+            if literal in clause:
+                instances.append(literal)
+            elif (-1*literal) in clause:
+                instances.append(-1*literal)
+        result = all(element == instances[0] for element in instances)
+        if result == True: #pure elimination
+            for clause in clause_set:
+                if instances[0] in clause:
+                    try:
+                        while True:
+                            clause.remove(instances[0])
+                    except ValueError:
+                        pass
+            clause_set.append([instances[0]])
         else:
-            print('pure')
+            pass
+    return clause_set
+
+def dpll_sat_solve(clause_set):
+    unit_propagate(clause_set)
+    pure_literal_elimate(clause_set)
+    if any([len(clause) == 0 for clause in clause_set]):
+        print('unsat')
+
 #reading DIMACS file & creating clause set  res = [i for i in clause_set if i not in removal]  
 txtfile = open("LNP-6.txt", "r")
 clauselist=[]
@@ -76,4 +112,4 @@ for x in txtfile:
             clause.remove(0)
             clauselist.append(clause)
 
-pure_literal_elimate(clauselist)
+dpll_sat_solve(clauselist)
