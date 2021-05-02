@@ -12,10 +12,10 @@ print(clauses0)
 
 import wvbw15
 
-start=time.time()
-print(mpll19.dpll_sat_solve(clauses0,[]))
-end=time.time()
-print(end-start)
+#start=time.time()
+print(wvbw15.dpll_sat_solve(clauses0,[]))
+#end=time.time()
+#print(end-start)
 
 #import dcs1bdm
 
