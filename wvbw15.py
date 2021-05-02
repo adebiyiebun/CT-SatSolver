@@ -1,7 +1,6 @@
 import itertools
-import sys
 import operator
-import copy
+from copy import deepcopy
 
 def simple_sat_solve(clause_set):
     maxlist=[max(element) for element in clause_set]
@@ -42,7 +41,7 @@ def simple_sat_solve(clause_set):
         print('this CNF is satisfiable')
 
 def unit_propagate(clause_set): 
-    partialassign = {}
+    partialassign = []
     while any([len(clause) == 1 for clause in clause_set]):
         units=[]  
         units =[i for innerlist in clause_set for i in innerlist if len(innerlist)==1] 
@@ -51,10 +50,9 @@ def unit_propagate(clause_set):
                 removal =[]
                 for i in clause_set:
                     if unit in i:
-                        partialassign[unit]=True
+                        partialassign.append(unit)
                         removal.append(i) 
                     if (-1*unit) in i:
-                        partialassign[-1*unit]= False
                         try:
                             while True:
                                 i.remove(-1*unit)
@@ -64,17 +62,16 @@ def unit_propagate(clause_set):
                 units.remove(unit)   
         else:
             
-            return partialassign, clause_set
+            return clause_set, partialassign
        
     if len(clause_set)==0:
-        return partialassign, clause_set
+        return clause_set, partialassign
     elif any([len(clause) == 0 for clause in clause_set]):
-        return None, None
+        return clause_set, partialassign
     else:
-        return partialassign, clause_set
+        return clause_set, partialassign
 
 def pure_literal_elimate(clause_set):
-    partialassign={}
     maxvalue=getVars(clause_set)
     for literal in maxvalue:
         instances =[]
@@ -85,7 +82,7 @@ def pure_literal_elimate(clause_set):
                 instances.append(-1*literal)
         result = all(element == instances[0] for element in instances)
         if result == True: #pure elimination
-            partialassign[instances[0]]=True
+            
             for clause in clause_set:
                 if instances[0] in clause:
                     try:
@@ -96,7 +93,7 @@ def pure_literal_elimate(clause_set):
             clause_set.append([instances[0]])
         else:
             pass
-    return partialassign, clause_set
+    return clause_set
             
 def getVars(clause_set):  #finds all literals in clause_set
     literals=[]
@@ -129,12 +126,6 @@ def assign_false(clause_set,x):
         result.append(clause)
     return result
 
-def negate(x):
-    if x>0:
-        return (-1*x)
-    else:
-        return x
-
 def ChooseVariable(literals,partial_assignment):
     for x in literals:
         if x not in partial_assignment:
@@ -143,89 +134,97 @@ def ChooseVariable(literals,partial_assignment):
             x = False
     return x
     
-def dpll_sat_solver(clause_set,partial_assignment):
-    unitassign, clause_set=unit_propagate(clause_set)
-    pureassign, clause_set=pure_literal_elimate(clause_set)
-    if clause_set!= None:
-        if len(clause_set) ==0:
-            print('sat')
-            return True
-        elif any([len(clause)==0 for clause in clause_set]):
-            print('unsat')
-            return False
-        
-        partial_assignment.append(unitassign)
-        literals =getVars(clause_set)
-        x= ChooseVariable(literals, partial_assignment)
-        negative = negate(x)
-        
-        #path of truth
-        searchcnf=assign_true(clause_set, x)
-        searchcnf=assign_false(searchcnf, negative)
-        
+def branching(clause_set,partial_assignment):
+    global assignment
+    if len(clause_set)==0:
+        assignment=partial_assignment
+        return True
+    if any([len(clause)==0 for clause in clause_set]):
+        return False
 
-
-        #false path
+    literals=getVars(clause_set)
+    x = ChooseVariable(literals,partial_assignment)
+    newcnf=assign_true(deepcopy(clause_set),x)
+    newcnf=assign_false(newcnf,-x)
+    sat = branching_sat_solve(newcnf,partial_assignment+[x])
+    if not sat:
+        newcnf=assign_true(deepcopy(clause_set),-x)
+        newcnf=assign_false(newcnf,x)
+        sat = branching_sat_solve(newcnf,partial_assignment+[-x])
+    return sat
 
 def branching_sat_solve(clause_set,partial_assignment):
-    print(partial_assignment)
-    if len(clause_set)==0:
-        print('sat')
-        return 'sat'
-    elif any([len(clause)==0 for clause in clause_set]):
-        print('back')
-        return "unsat"
-    else:
-        while True:
-            literals =getVars(clause_set)
-            x=ChooseVariable(literals, partial_assignment)
-            negative = negate(x)
-            current,removed = assign(cnf,x)
-            print(x)
-            print(current)
-            if current == cnf: 
-                literals.remove(x)
-            else:
-                break
-        solution = branching_sat_solve(current, partial_assignment+[x])
-        if (solution != 'unsat'):
-            return solution
-        elif solution == 'unsat':
-            for clause in current:
-                if len(clause)==0:
-                    clause.append(negative)
-            current, x= assign(current,negative)
-            solution = branching_sat_solve(current, partial_assignment+[negative])
-            return solution
+    truthassignments=[]
+    satis=[]
+    global assignment
+    sat= branching(clause_set,partial_assignment)
+    if sat == True:
+        print('SAT')
+        truthassignments.append(sorted(assignment,key=abs))
+    for each in truthassignments:
+        check =[]
+        for x in each:
+            if x<0:
+                x=0
+                check.append(x)
+            elif x>0:
+                x=1
+                check.append(x)
+        print(check)
     
+def dpll(clause_set,partial_assignment):
+    global assignment
+    clause_set, unitassign = unit_propagate(clause_set)
+    clause_set = pure_literal_elimate(clause_set)
+    partial_assignment = partial_assignment + unitassign
+    partial_assignment = list(set(partial_assignment))
+    if len(clause_set)==0:
+        assignment=partial_assignment
+        return True
+    if any([len(clause)==0 for clause in clause_set]):
+        return False
+    
+    literals=getVars(clause_set)
+    x = ChooseVariable(literals,partial_assignment)
+    newcnf=assign_true(deepcopy(clause_set),x)
+    newcnf=assign_false(newcnf,-x)
+    sat = dpll(newcnf,partial_assignment+[x])
+    if not sat:
+        newcnf=assign_true(deepcopy(clause_set),-x)
+        newcnf=assign_false(newcnf,x)
+        sat = dpll(newcnf,partial_assignment+[-x])
+    return sat
 
-def assign(clause_set,x):
-    result=[]
-    removed =[]
-    for clause in clause_set:
-        if x in clause: 
-            removed.append(clause)
-        elif -x in clause:
-            try:
-                while True:
-                        clause.remove(-x)
-            except ValueError:
-                pass
-            result.append(clause)
-        else:
-            result.append(clause)
-    return result,removed
-
-#reading DIMACS file & creating clause set 
-txtfile = open("4queens.txt", "r")
-clauselist=[]
-for x in txtfile:
-    if (x[0]=="p" or x[0]=="c"):
-        pass
+def dpll_sat_solve(clause_set,partial_assignment):
+    truthassignments=[]
+    global assignment
+    sat= dpll(clause_set,partial_assignment)
+    if sat == True:
+        truthassignments.append(sorted(assignment,key=abs))
+    if len(truthassignments) ==0:
+        print('UNSAT')
     else:
-        if x[0] not in ('c','p'):
-            clause=[int(n) for n in x.split()]
-            clause.remove(0)
-            clauselist.append(clause)
-
-print(branching_sat_solve(clauselist,[]))
+        print('SAT')
+        for each in truthassignments:
+            check =[]
+            for x in each:
+                if x<0:
+                    x=0
+                    check.append(x)
+                elif x>0:
+                    x=1
+                    check.append(x)
+            print(check)
+#reading DIMACS file & creating clause set 
+#txtfile = open("4queens.txt", "r")
+#clauselist=[]
+#for x in txtfile:
+ #   if (x[0]=="p" or x[0]=="c"):
+  #      pass
+   # else:
+    #    if x[0] not in ('c','p'):
+     #       clause=[int(n) for n in x.split()]
+      #      clause.remove(0)
+       #     clauselist.append(clause)
+#clauselist=
+#branching_sat_solve(clauselist,[])
