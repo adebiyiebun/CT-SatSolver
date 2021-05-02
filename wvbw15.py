@@ -216,15 +216,14 @@ def dpll_sat_solve(clause_set,partial_assignment):
                     check.append(x)
             print(check)
 #reading DIMACS file & creating clause set 
-#txtfile = open("4queens.txt", "r")
-#clauselist=[]
-#for x in txtfile:
- #   if (x[0]=="p" or x[0]=="c"):
-  #      pass
-   # else:
-    #    if x[0] not in ('c','p'):
-     #       clause=[int(n) for n in x.split()]
-      #      clause.remove(0)
-       #     clauselist.append(clause)
-#clauselist=
-#branching_sat_solve(clauselist,[])
+txtfile = open("4queens.txt", "r")
+clauselist=[]
+for x in txtfile:
+    if (x[0]=="p" or x[0]=="c"):
+        pass
+    else:
+        if x[0] not in ('c','p'):
+            clause=[int(n) for n in x.split()]
+            clause.remove(0)
+            clauselist.append(clause)
+
