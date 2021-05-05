@@ -45,33 +45,26 @@ def unit_propagate(clause_set):
     while any([len(clause) == 1 for clause in clause_set]):
         units=[]  
         units =[i for innerlist in clause_set for i in innerlist if len(innerlist)==1] 
-        if len(units):
-            for unit in units:
-                removal =[]
-                for i in clause_set:
-                    if unit in i:
-                        partialassign.append(unit)
-                        removal.append(i) 
-                    if (-1*unit) in i:
-                        try:
-                            while True:
-                                i.remove(-1*unit)
-                        except ValueError:
-                            pass
-                clause_set= [x for x in clause_set if x not in removal]
-                units.remove(unit)   
-        else:
+        units = list(set(units))
             
-            return clause_set, partialassign
-       
-    if len(clause_set)==0:
-        return clause_set, partialassign
-    elif any([len(clause) == 0 for clause in clause_set]):
-        return clause_set, partialassign
-    else:
-        return clause_set, partialassign
+        for unit in units:
+            removal =[]      
+            for i in clause_set:
+                if unit in i:
+                    partialassign.append(unit)
+                    removal.append(i) 
+                if (-unit) in i:
+                    try:
+                        while True:
+                            i.remove(-unit)    
+                    except ValueError:
+                        pass
+            clause_set= [x for x in clause_set if x not in removal]
+
+    return clause_set, partialassign
 
 def pure_literal_elimate(clause_set):
+
     maxvalue=getVars(clause_set)
     for literal in maxvalue:
         instances =[]
@@ -176,18 +169,26 @@ def dpll(clause_set,partial_assignment):
     global assignment
     clause_set, unitassign = unit_propagate(clause_set)
     clause_set = pure_literal_elimate(clause_set)
+    unitassign = list(set(unitassign))
     partial_assignment = partial_assignment + unitassign
     partial_assignment = list(set(partial_assignment))
+    #print(partial_assignment)
     if len(clause_set)==0:
         assignment=partial_assignment
         return True
     if any([len(clause)==0 for clause in clause_set]):
         return False
-    
-    literals=getVars(clause_set)
-    x = ChooseVariable(literals,partial_assignment)
-    newcnf=assign_true(deepcopy(clause_set),x)
-    newcnf=assign_false(newcnf,-x)
+
+    while True:
+        literals=getVars(clause_set)
+        x = ChooseVariable(literals,partial_assignment)
+        newcnf=assign_true(deepcopy(clause_set),x)
+        newcnf=assign_false(newcnf,-x)
+
+        if newcnf == clause_set:
+            partial_assignment.remove(x)
+        else:
+            break
     sat = dpll(newcnf,partial_assignment+[x])
     if not sat:
         newcnf=assign_true(deepcopy(clause_set),-x)
@@ -215,8 +216,9 @@ def dpll_sat_solve(clause_set,partial_assignment):
                     x=1
                     check.append(x)
             print(check)
+
 #reading DIMACS file & creating clause set 
-txtfile = open("4queens.txt", "r")
+txtfile = open("wvbw15dimacs.txt", "r")
 clauselist=[]
 for x in txtfile:
     if (x[0]=="p" or x[0]=="c"):
@@ -227,3 +229,4 @@ for x in txtfile:
             clause.remove(0)
             clauselist.append(clause)
 
+simple_sat_solve(clauselist)
